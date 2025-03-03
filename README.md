@@ -1,3 +1,3 @@
 OUTPUT
 
-![Auto Detected Hough Lines](output/auto/auto-detected-hough-lines.jpg)
+![Auto Detected Hough Lines](Output/auto/auto-detected-hough-lines.jpg)
