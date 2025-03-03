@@ -1,0 +1,91 @@
+# Import required libraries
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Helper function to display images using matplotlib
+def display_image(img, title='Image', cmap_type=None):
+    plt.figure(figsize=(8,6))
+    plt.imshow(img, cmap=cmap_type)
+    plt.title(title)
+    plt.axis('off')
+    plt.show()
+
+# 1. Read the image and display it
+# Run with 'auto.jpeg' OR '11.bmp' with the path to your test image
+# img = cv2.imread('auto.jpeg')
+img = cv2.imread('11.bmp')
+if img is None:
+    print("Error: Image not found. Please check the image path.")
+else:
+    # OpenCV loads images in BGR format; convert to RGB for proper display with matplotlib.
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    display_image(img_rgb, title='Original Image')
+
+    # 2. Convert the image to grayscale
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    display_image(gray_img, title='Grayscale Image', cmap_type='gray')
+
+    # 3. Apply thresholding to create a binary image
+    threshold_value = 200  # This value can be adjusted based on your image
+    ret, thresh_img = cv2.threshold(gray_img, threshold_value, 255, cv2.THRESH_BINARY)
+    display_image(thresh_img, title='Thresholded Image', cmap_type='gray')
+
+    # 4. Apply blurring operations
+    # 4a. Simple blur (averaging)
+    blur_img = cv2.blur(gray_img, (10, 10))
+    display_image(blur_img, title='Simple Blur', cmap_type='gray')
+
+    # 4b. Gaussian blur
+    gauss_img = cv2.GaussianBlur(gray_img, (9, 9), 5)
+    display_image(gauss_img, title='Gaussian Blur', cmap_type='gray')
+
+    # 5. Rotate the image
+    (h, w) = img.shape[:2]
+    center = (w / 2, h / 2)
+    angle = 13      # Rotation angle in degrees
+    scale = 1.1     # Scaling factor
+    M = cv2.getRotationMatrix2D(center, angle, scale)
+    rotated_img = cv2.warpAffine(gray_img, M, (w, h))
+    display_image(rotated_img, title='Rotated Image', cmap_type='gray')
+
+    # 6. Edge detection using the Canny algorithm
+    low_threshold = 50
+    high_threshold = 150
+    edges = cv2.Canny(gray_img, low_threshold, high_threshold)
+    display_image(edges, title='Edge Detection (Canny)', cmap_type='gray')
+
+    # 7. Detect lines using the Hough Transform
+    # Detect lines in the edge image using HoughLinesP
+    lines = cv2.HoughLinesP(edges, rho=1, theta=np.pi/180, threshold=50, minLineLength=100, maxLineGap=10)
+    # Create a copy of the original image to draw the lines on
+    line_img = np.copy(img)
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv2.line(line_img, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Draw in green with thickness 2
+    # Convert image for display
+    line_img_rgb = cv2.cvtColor(line_img, cv2.COLOR_BGR2RGB)
+    display_image(line_img_rgb, title='Detected Hough Lines')
+
+    # 8. Apply a mask to the image to focus on a region of interest
+    def mask_of_image(image):
+        height, width = image.shape[:2]
+        # Define a polygon for the region of interest.
+        # Here the polygon is defined by three points.
+        # Adjust these points as needed for your specific case.
+        polygons = np.array([[(0, height), (width, height), (int(width * 0.5), int(height * 0.4))]])
+        mask = np.zeros_like(image)
+        # If the image is colored, the mask should have the same number of channels.
+        if len(image.shape) > 2:
+            channel_count = image.shape[2]
+            mask = np.zeros_like(image, dtype=np.uint8)
+            cv2.fillPoly(mask, polygons, (255,)*channel_count)
+        else:
+            cv2.fillPoly(mask, polygons, 255)
+        masked_image = cv2.bitwise_and(image, mask)
+        return masked_image
+
+    # Apply mask on the grayscale image (you can also apply on the original image)
+    masked_img = mask_of_image(gray_img)
+    display_image(masked_img, title='Masked Image', cmap_type='gray')
